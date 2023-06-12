@@ -37,6 +37,8 @@ async function createFile(localPath) {
   const { fileClient } = await directoryClient.createFile('test-file.pdf', size, {
   })
 
+  console.log('File created')
+
   return fileClient
 }
 
