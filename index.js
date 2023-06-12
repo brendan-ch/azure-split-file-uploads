@@ -55,8 +55,8 @@ async function createFile(localPath) {
   services.file = true
 
   const result = generateAccountSASQueryParameters({
-    // one minute
-    expiresOn: new Date(Date.now() + 60000),
+    // one hour
+    expiresOn: new Date(Date.now() + 3600000),
     permissions: permissions,
     resourceTypes: resources.toString(),
     services: services.toString()
@@ -117,5 +117,6 @@ terminal.question('Enter the path to the test file: ', answer => {
   localPath = answer
   createFile(localPath)
     .then((fileClient) => partialUpload(fileClient, localPath))
+    .then(() => terminal.close())
 })
 
