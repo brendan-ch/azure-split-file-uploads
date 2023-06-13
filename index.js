@@ -79,6 +79,52 @@ async function createFile(localPath) {
 }
 
 /**
+ * Concurrently upload a local file in partial fragments.
+ * @param {ShareFileClient} fileClient
+ * @param {string} localPath
+ */
+async function partialUploadConcurrent(fileClient, localPath) {
+  const file = fs.readFileSync(localPath)
+  const totalSize = file.byteLength;
+  let offset = 0;
+
+  // TO-DO: make this a timer
+  // Don't do this (async + for/while loops) in production
+
+  const uploadData = [];
+
+  while (offset < file.byteLength) {
+    const subarray = file.subarray(offset, offset + RANGE_SIZE - 1)
+
+    // Upload to the file client
+    uploadData.push({
+      subarray,
+      start: offset,
+      end: offset + RANGE_SIZE - 1 > totalSize ? totalSize - offset : RANGE_SIZE - 1,
+    })
+
+    offset += RANGE_SIZE
+  }
+
+  // Upload data concurrently
+  await Promise.all(uploadData.map(async (data) => {
+    const {
+      subarray,
+      start,
+      end,
+    } = data
+
+    console.log(`Uploading subarray starting from offset ${start}`)
+    // console.log(subarray)
+
+    const response = await fileClient.uploadRange(subarray, start, end, {
+    })
+  }))
+
+  console.log('Upload complete')
+}
+
+/**
  * Completely upload a local file in partial fragments.
  * @param {ShareFileClient} fileClient
  * @param {string} localPath
@@ -101,8 +147,6 @@ async function partialUpload(fileClient, localPath) {
 
     offset += RANGE_SIZE
   }
-
-  console.log('Upload complete')
 }
 
 // Wait for the user to enter a path
@@ -114,9 +158,14 @@ const terminal = readline.createInterface({
 let localPath = '';
 
 terminal.question('Enter the path to the test file: ', answer => {
+  const now = Date.now()
+
   localPath = answer
   createFile(localPath)
-    .then((fileClient) => partialUpload(fileClient, localPath))
-    .then(() => terminal.close())
-})
+    .then((fileClient) => partialUploadConcurrent(fileClient, localPath))
+    .then(() => {
+      console.log(`Time elapsed: ${Date.now() - now} ms`)
 
+      terminal.close()
+    })
+})
